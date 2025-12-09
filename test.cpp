@@ -1,6 +1,5 @@
 #include <iostream>
 #include "scratch.hpp"
-#include "scratch2.hpp"
 #include "utils.hpp"
 
 int main(int argc, char **argv)
@@ -14,5 +13,5 @@ int main(int argc, char **argv)
     const std::string input_image_file(argv[1]);
     // cv::Mat image = cv::imread(input_image_file, -1);
     // scratchDetect(input_image_file,300);
-    scratch2(input_image_file);
+    scratch(input_image_file);
 }
