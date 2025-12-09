@@ -37,33 +37,31 @@ cv::Mat thresholdGradientMagnitude(cv::Mat Image, float i)
 
 cv::Mat minimumAreaSize(cv::Mat Image, int min, int max)
 {
-    // GPTED IDK Nearest neighbor
+    cv::Mat gray;
+
+    // Ensure single-channel
+    if (Image.channels() == 1)
+        gray = Image.clone();
+    else
+        cv::cvtColor(Image, gray, cv::COLOR_BGR2GRAY);
+
     cv::Mat labels, stats, centroids;
 
-    // Connected Component Labeling (8-connectivity is the classical default)
     int numLabels = cv::connectedComponentsWithStats(
-        Image,     // binary image (0 and 255)
-        labels,    // output label map
-        stats,     // blob statistics
-        centroids, // blob centroids
-        8          // 8-connectivity
+        gray, labels, stats, centroids, 8
     );
 
-    // Create the cleaned binary image
-    cv::Mat cleaned = cv::Mat::zeros(Image.size(), CV_8UC1);
+    cv::Mat cleaned = cv::Mat::zeros(gray.size(), CV_8UC1);
 
-    // Loop over each component (starting at index 1; index 0 is background)
     for (int i = 1; i < numLabels; i++)
     {
         int area = stats.at<int>(i, cv::CC_STAT_AREA);
 
         if (area >= min && area <= max)
         {
-            // keep this component
             cleaned.setTo(255, labels == i);
         }
     }
-    //
 
     return cleaned;
 }
@@ -84,9 +82,8 @@ cv::Mat houghTransform(cv::Mat Image, int threshold)
         // already grayscale
         clone = Image.clone();
     }
-
     // Convert to color *only for drawing*
-    cv::Mat Colored_Image;
+    cv::Mat Colored_Image = minimumAreaSize(clone,0,0);
     cv::cvtColor(clone, Colored_Image, cv::COLOR_GRAY2BGR);
 
     std::vector<cv::Vec4i> linesP;                         // will hold the results of the detection
@@ -117,10 +114,11 @@ void scratch(std::string path)
     // Threshold the Gradient Magnitude
     cv::Mat closed = thresholdGradientMagnitude(magnitude);
     // return cv::Mat with min <= area <= max
-    closed = minimumAreaSize(closed, 50, 500);
-    // closed = minimumAreaSize(closed, 400, 500);
-    cv::Mat closedColor = houghTransform(closed, 10);
-    cv::Mat closedColor2 = houghTransform(closedColor, 10);
+    closed = minimumAreaSize(closed, 20, 400);
+    // closed = minimumAreaSize(closed, 10, 50);
+    cv::Mat closedColor = houghTransform(closed, 20);
+    cv::Mat closedColor2 = houghTransform(closedColor, 0);
+    closedColor2 = minimumAreaSize(closedColor2,20,50);
 
     // imwrite("doubledhough.png", closedColor2);
     cv::Mat magnitude_display;
