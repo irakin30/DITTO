@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include "utils.hpp"
+#include "global_vars.hpp"
 
 int main(int argc, char **argv)
 {
@@ -18,8 +19,8 @@ int main(int argc, char **argv)
     const std::string template_image_file(argv[2]);
 
     // Read input and template images
-    cv::Mat userImg = cv::imread("../../" + input_image_file);
-    cv::Mat templateImg = cv::imread("../../" + template_image_file);
+    userImg = cv::imread("../../" + input_image_file);
+    templateImg = cv::imread("../../" + template_image_file);
 
     // cv::Mat userImg = cv::imread("../../images/back_rotate.png");
     // cv::Mat templateImg = cv::imread("../../images/back_rotate.png");
@@ -105,6 +106,8 @@ int main(int argc, char **argv)
     {
         warpedImg = cv::Mat::zeros(HEIGHT_CARD, WIDTH_CARD, CV_8UC3);
     }
+
+    warpImg = warpedImg;
 
     std::vector<std::vector<cv::Mat>> imgArr = {{resizedImg, gray, blurred},
                                                 {edges, cornersImg, warpedImg}};
