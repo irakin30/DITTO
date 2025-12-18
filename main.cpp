@@ -18,8 +18,8 @@ int main(int argc, char **argv)
     const std::string template_image_file(argv[2]);
 
     // Read input and template images
-    cv::Mat userImg = cv::imread("../../" + input_image_file);
-    cv::Mat templateImg = cv::imread("../../" + template_image_file);
+    cv::Mat userImg = cv::imread("../images/" + input_image_file);
+    cv::Mat templateImg = cv::imread("../images/" + template_image_file);
 
     // Check if images loaded
     if (userImg.empty() || templateImg.empty())
