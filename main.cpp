@@ -8,6 +8,7 @@
 #include "global_vars.hpp"
 #include "fray.hpp"
 #include "grader.hpp"
+#include "scratch.hpp"
 
 int main(int argc, char **argv)
 {
@@ -110,10 +111,11 @@ int main(int argc, char **argv)
     }
 
     warpImg = warpedImg;
-
+    std::pair<cv::Mat, int> scratched = scratch(warpedImg);
     std::vector<std::vector<cv::Mat>> imgArr = {{resizedImg, gray, blurred},
-                                                {edges, cornersImg, warpedImg}};
-
+                                                {edges, cornersImg, warpedImg},
+                                                {scratched.first, scratched.first, scratched.first}};
+    std::cout << "There are " << scratched.second << " scratches";
     cv::Mat pipeline = displayImage(imgArr);
 
     // Grading
