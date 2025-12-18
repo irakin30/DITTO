@@ -4,7 +4,7 @@
 cv::Mat gaussianBlurGradientMagnitude(cv::Mat Image, int size)
 {
     // Apply Blur
-    cv::GaussianBlur(Image, Image, cv::Size(size, size), 1);
+    cv::GaussianBlur(Image, Image, cv::Size(size, size), 2);
 
     cv::Mat sobelx, sobely;
     // Apply Sobel for x-derivative
@@ -21,10 +21,9 @@ cv::Mat thresholdGradientMagnitude(cv::Mat Image, float i)
 {
     double minVal, maxVal;
     cv::minMaxLoc(Image, &minVal, &maxVal);
-    float thresh = 0.2f * static_cast<float>(maxVal);
+    float thresh = 0.3f * static_cast<float>(maxVal);
     cv::threshold(Image, Image, thresh, 255, cv::THRESH_BINARY);
 
-    // Not sure what this does GPTED
     // Create a 3x3 disk (elliptical) structuring element
     cv::Mat se = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3));
 
@@ -48,8 +47,7 @@ cv::Mat minimumAreaSize(cv::Mat Image, int min, int max)
     cv::Mat labels, stats, centroids;
 
     int numLabels = cv::connectedComponentsWithStats(
-        gray, labels, stats, centroids, 8
-    );
+        gray, labels, stats, centroids, 8);
 
     cv::Mat cleaned = cv::Mat::zeros(gray.size(), CV_8UC1);
 
@@ -66,73 +64,63 @@ cv::Mat minimumAreaSize(cv::Mat Image, int min, int max)
     return cleaned;
 }
 
-cv::Mat houghTransform(cv::Mat Image, int threshold)
+std::pair<cv::Mat, int> houghTransform(cv::Mat Grayscaled, int minLength, int maxLength, cv::Mat original)
 {
-    cv::Mat clone;
-    if (Image.channels() == 3)
-    {
-        cv::cvtColor(Image, clone, cv::COLOR_BGR2GRAY);
-    }
-    else if (Image.channels() == 4)
-    {
-        cv::cvtColor(Image, clone, cv::COLOR_BGRA2GRAY);
-    }
-    else
-    {
-        // already grayscale
-        clone = Image.clone();
-    }
-    // Convert to color *only for drawing*
-    cv::Mat Colored_Image = minimumAreaSize(clone,0,0);
-    cv::cvtColor(clone, Colored_Image, cv::COLOR_GRAY2BGR);
+    if (Grayscaled.empty() || original.empty())
+        return std::pair(cv::Mat(),0);
 
-    std::vector<cv::Vec4i> linesP;                         // will hold the results of the detection
-    HoughLinesP(clone, linesP, 1, CV_PI / 180, threshold); // runs the actual detection
-    // Draw the lines
-    for (size_t i = 0; i < linesP.size(); i++)
+    cv::Mat gray;
+    if (Grayscaled.channels() == 3)
+        cv::cvtColor(Grayscaled, gray, cv::COLOR_BGR2GRAY);
+    else if (Grayscaled.channels() == 4)
+        cv::cvtColor(Grayscaled, gray, cv::COLOR_BGRA2GRAY);
+    else
+        gray = Grayscaled.clone();
+
+    // Detect lines
+    std::vector<cv::Vec4i> linesP;
+    cv::HoughLinesP(gray, linesP, 1, CV_PI / 180, 30); // threshold can be tuned
+
+    cv::Mat Colored_Image = original.clone();
+
+    for (const auto& l : linesP)
     {
-        cv::Vec4i l = linesP[i];
-        cv::line(Colored_Image, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(255, 255, 255), 3, cv::LINE_AA);
+        int x1 = l[0], y1 = l[1], x2 = l[2], y2 = l[3];
+        double length = std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2));
+
+        // Only draw if length is within min and max
+        if (length >= minLength && length <= maxLength)
+        {
+            cv::line(Colored_Image,
+                     cv::Point(x1, y1),
+                     cv::Point(x2, y2),
+                     cv::Scalar(0, 0, 255),
+                     3,
+                     cv::LINE_AA);
+        }
     }
-    return Colored_Image;
+
+    return std::pair(Colored_Image,linesP.size());
 }
 
-void scratch(std::string path)
+std::pair<cv::Mat, int> scratch(const cv::Mat &Image)
 {
-    cv::Mat Image = cv::imread(path, cv::IMREAD_UNCHANGED);
     if (Image.empty())
     {
-        std::cerr << "Error: could not load image.\n";
-        return;
+        std::cerr << "Error";
+        return std::pair(cv::Mat(),0);
     }
     // Convert the clone into Grayscaled Image
     cv::Mat grayscaledClone;
     cv::cvtColor(Image, grayscaledClone, cv::COLOR_BGR2GRAY);
 
     // Smooth the grayscaledClone and find Gradient Magnitude
-    cv::Mat magnitude = gaussianBlurGradientMagnitude(grayscaledClone, 9);
+    cv::Mat magnitude = gaussianBlurGradientMagnitude(grayscaledClone, 15);
     // Threshold the Gradient Magnitude
-    cv::Mat closed = thresholdGradientMagnitude(magnitude);
+    cv::Mat closed = thresholdGradientMagnitude(magnitude, 0.3);
     // return cv::Mat with min <= area <= max
-    closed = minimumAreaSize(closed, 20, 400);
-    // closed = minimumAreaSize(closed, 10, 50);
-    cv::Mat closedColor = houghTransform(closed, 20);
-    cv::Mat closedColor2 = houghTransform(closedColor, 0);
-    closedColor2 = minimumAreaSize(closedColor2,20,50);
+    closed = minimumAreaSize(closed, 0, 300);
+    closed = minimumAreaSize(closed, 10, 100);
 
-    // imwrite("doubledhough.png", closedColor2);
-    cv::Mat magnitude_display;
-    cv::normalize(magnitude, magnitude_display, 0, 255, cv::NORM_MINMAX, CV_8U);
-
-    std::vector<std::vector<cv::Mat>> imgArr = {{Image, magnitude_display, closed, closedColor, closedColor2}}; //, {Original, closedColor, closedColor2}
-
-    cv::namedWindow("card", cv::WINDOW_NORMAL);
-    cv::resizeWindow("card", 1920, 1080);
-    cv::Mat pipeline = displayImage(imgArr);
-    cv::imshow("card", pipeline);
-    cv::waitKey(0);
-
-    imwrite("Image.png", Image);
-    imwrite("Gradient.png", magnitude_display);
-    imwrite("minimized.png", closed);
+    return houghTransform(closed, 1, 100, Image);
 }

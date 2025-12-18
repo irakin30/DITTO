@@ -7,6 +7,5 @@ set(OpenCV_DIR C:/opencv/build)
 find_package(OpenCV REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
-# add_executable(${PROJECT_NAME} main.cpp utils.cpp scratch.cpp)
- add_executable(${PROJECT_NAME} test.cpp utils.cpp scratch.cpp)
+add_executable(${PROJECT_NAME} main.cpp utils.cpp grader.cpp global_vars.cpp fray.cpp scratch.cpp)
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
