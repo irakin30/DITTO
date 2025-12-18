@@ -28,7 +28,7 @@ std::vector<cv::Point> biggestContour(const std::vector<std::vector<cv::Point>> 
     for (int i = 0; i < (int)contours.size(); i++)
     {
         double area = cv::contourArea(contours[i]);
-        if (area < 3000)
+        if (area < 5000)
             continue;
 
         cv::RotatedRect rect = cv::minAreaRect(contours[i]);

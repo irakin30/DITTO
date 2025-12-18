@@ -6,6 +6,8 @@
 #include <cmath>
 #include "utils.hpp"
 #include "global_vars.hpp"
+#include "fray.hpp"
+#include "grader.hpp"
 
 int main(int argc, char **argv)
 {
@@ -114,9 +116,21 @@ int main(int argc, char **argv)
 
     cv::Mat pipeline = displayImage(imgArr);
 
+    // Grading
+
+    int fray_pixels = calculateFrayPixels(warpImg, templateImg);
+
+    Card card;
+    card.fray_pixels = fray_pixels;
+    card.scratch_pixels = 0;
+    card.dent_pixels = 0;
+
+    double grade = calculateGrade(card);
+    card.grade = grade;
+    printResults(card);
+
     cv::imshow("Card Detection", pipeline);
     cv::imwrite("../../images/warp.png", warpedImg);
     cv::waitKey(0);
-
     return 0;
 }
