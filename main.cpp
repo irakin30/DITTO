@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <cmath>
 #include "utils.hpp"
-#include "fray.hpp"
 #include "grader.hpp"
 #include "scratch.hpp"
 #include "centering.hpp"
@@ -115,19 +114,17 @@ int main(int argc, char **argv)
     std::pair<cv::Mat, int> scratched = scratch(warpImg);
     std::vector<std::vector<cv::Mat>> imgArr = {
         {resizedImg, gray, blurred, scratched.first},
-        {edges, cornersImg, warpImg, scratched.first},
+        {edges, cornersImg, warpImg, resizedTemplate},
     };
     std::cout << "There are " << scratched.second << " scratches" << std::endl;
     cv::Mat pipeline = displayImage(imgArr);
 
     // Grading
 
-    // int fray_pixels = calculateFrayPixels(warpImg, resizedTemplate);
     int scratch_pixels = scratched.second;
     double centering = calculateCentering(warpImg, resizedTemplate);
 
     Card card;
-    card.fray_pixels = 0;
     card.scratch_pixels = scratch_pixels;
     card.centering = centering;
 

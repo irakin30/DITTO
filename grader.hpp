@@ -3,7 +3,6 @@
 struct Card
 {
     double grade;
-    int fray_pixels;
     double centering;
     int scratch_pixels;
 };
