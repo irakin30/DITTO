@@ -7,5 +7,5 @@ set(OpenCV_DIR C:/opencv/build)
 find_package(OpenCV REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
-add_executable(${PROJECT_NAME} main.cpp utils.cpp)
+add_executable(${PROJECT_NAME} main.cpp utils.cpp grader.cpp scratch.cpp centering.cpp)
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})

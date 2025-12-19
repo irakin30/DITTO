@@ -19,33 +19,55 @@ int getHeightCard()
     return HEIGHT_CARD;
 }
 
-// Find the corners and the area of the biggest contour
+// Find the corners and the area of the best contour for card outline
 std::vector<cv::Point> biggestContour(const std::vector<std::vector<cv::Point>> &contours)
 {
-    int max_contour_idx = -1;
-    double max_area = 0;
-    for (int i = 0; i < contours.size(); i++)
+    int bestIdx = -1;
+    double bestArea = 0.0;
+
+    for (int i = 0; i < (int)contours.size(); i++)
     {
         double area = cv::contourArea(contours[i]);
-        if (area > max_area)
+        if (area < 5000)
+            continue;
+
+        cv::RotatedRect rect = cv::minAreaRect(contours[i]);
+
+        if (area > bestArea)
         {
-            max_area = area;
-            max_contour_idx = i;
+            bestArea = area;
+            bestIdx = i;
         }
     }
 
-    std::vector<cv::Point> card_contour;
-    if (max_contour_idx >= 0 && max_contour_idx < contours.size())
-    {
-        double epsilon = 0.02 * cv::arcLength(contours[max_contour_idx], true);
-        cv::approxPolyDP(contours[max_contour_idx], card_contour, epsilon, true);
-    }
-    else
-    {
-        std::cerr << "No contours detected" << std::endl;
-        card_contour = std::vector<cv::Point>();
-    }
-    return card_contour;
+    if (bestIdx < 0)
+        return {};
+
+    std::vector<cv::Point> hull;
+    cv::convexHull(contours[bestIdx], hull);
+
+    if (hull.size() < 4)
+        return {};
+
+    double peri = cv::arcLength(hull, true);
+    if (peri <= 0.0)
+        return {};
+
+    std::vector<cv::Point> approx;
+    cv::approxPolyDP(hull, approx, 0.02 * peri, true);
+
+    cv::RotatedRect rect = cv::minAreaRect(hull);
+    rect.size.width *= 0.98f;
+    rect.size.height *= 0.98f;
+
+    cv::Point2f pts2f[4];
+    rect.points(pts2f);
+
+    std::vector<cv::Point> corners(4);
+    for (int i = 0; i < 4; i++)
+        corners[i] = pts2f[i];
+
+    return corners;
 }
 
 std::pair<std::vector<int>, std::vector<int>> sortVals(const std::vector<int> &arr)
@@ -161,7 +183,7 @@ std::vector<cv::Point> reorderCorners(std::vector<cv::Point> corners)
 
 void drawRectangle(cv::Mat &image, const std::vector<cv::Point> &corners)
 {
-    int thickness = 10;
+    int thickness = 1;
     cv::line(image, corners[0], corners[1], cv::Scalar(0, 255, 0), thickness); // Top edge
     cv::line(image, corners[0], corners[2], cv::Scalar(0, 255, 0), thickness); // Left edge
     cv::line(image, corners[1], corners[3], cv::Scalar(0, 255, 0), thickness); // Right edge

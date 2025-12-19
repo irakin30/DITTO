@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <cmath>
 #include "utils.hpp"
+#include "grader.hpp"
+#include "scratch.hpp"
+#include "centering.hpp"
 
 int main(int argc, char **argv)
 {
@@ -18,8 +21,11 @@ int main(int argc, char **argv)
     const std::string template_image_file(argv[2]);
 
     // Read input and template images
-    cv::Mat userImg = cv::imread(input_image_file);
-    cv::Mat templateImg = cv::imread(template_image_file);
+    cv::Mat userImg = cv::imread("../../" + input_image_file);
+    cv::Mat templateImg = cv::imread("../../" + template_image_file);
+
+    // cv::Mat userImg = cv::imread("../../images/back_rotate.png");
+    // cv::Mat templateImg = cv::imread("../../images/back_rotate.png");
 
     // Check if images loaded
     if (userImg.empty() || templateImg.empty())
@@ -34,19 +40,44 @@ int main(int argc, char **argv)
     cv::Mat originalImg = userImg.clone();
 
     cv::Mat resizedImg;
+    cv::Mat resizedTemplate;
     cv::resize(userImg, resizedImg, cv::Size(WIDTH_CARD, HEIGHT_CARD));
+    cv::resize(templateImg, resizedTemplate, cv::Size(WIDTH_CARD, HEIGHT_CARD));
 
-    cv::Mat gray, blurred, edges, morph;
+    cv::Mat gray, blurred, bin, edges, morph;
     cv::cvtColor(resizedImg, gray, cv::COLOR_BGR2GRAY);
     cv::GaussianBlur(gray, blurred, cv::Size(5, 5), 1.5);
-    cv::Canny(blurred, edges, 50, 150);
+    cv::Canny(blurred, edges, 50, 200);
     cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
     cv::dilate(edges, morph, kernel, cv::Point(-1, -1), 2);
     cv::erode(morph, morph, kernel, cv::Point(-1, -1), 1);
 
+    // cv::adaptiveThreshold(
+    //     blurred, bin,
+    //     255,
+    //     cv::ADAPTIVE_THRESH_GAUSSIAN_C,
+    //     cv::THRESH_BINARY_INV,
+    //     31, 13);
+
+    // cv::morphologyEx(
+    //     bin, bin,
+    //     cv::MORPH_CLOSE,
+    //     cv::getStructuringElement(cv::MORPH_RECT, {5, 5}),
+    //     cv::Point(-1, -1),
+    //     13);
+
+    // cv::erode(bin, bin, cv::getStructuringElement(cv::MORPH_RECT, {3, 3}), cv::Point(-1, -1), 1);
+
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarchy;
+
     cv::findContours(morph.clone(), contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+    if (contours.empty())
+    {
+        std::cerr << "No contours found" << std::endl;
+        return -1;
+    }
 
     std::vector<cv::Point> corners = reorderCorners(biggestContour(contours));
 
@@ -70,24 +101,39 @@ int main(int argc, char **argv)
         drawRectangle(cornersImg, corners);
     }
 
-    cv::Mat warpedImg;
+    cv::Mat warpImg;
     if (scaled_corners.size() == 4)
     {
-        warpedImg = warpCard(originalImg, scaled_corners);
+        warpImg = warpCard(originalImg, scaled_corners);
     }
     else
     {
-        warpedImg = cv::Mat::zeros(HEIGHT_CARD, WIDTH_CARD, CV_8UC3);
+        warpImg = cv::Mat::zeros(HEIGHT_CARD, WIDTH_CARD, CV_8UC3);
     }
 
-    std::vector<std::vector<cv::Mat>> imgArr = {{resizedImg, gray, blurred},
-                                                {edges, cornersImg, warpedImg}};
-
+    std::pair<cv::Mat, int> scratched = scratch(warpImg);
+    std::vector<std::vector<cv::Mat>> imgArr = {
+        {resizedImg, gray, blurred, scratched.first},
+        {edges, cornersImg, warpImg, resizedTemplate},
+    };
+    std::cout << "There are " << scratched.second << " scratches" << std::endl;
     cv::Mat pipeline = displayImage(imgArr);
 
-    cv::imshow("Card Detection", pipeline);
-    cv::imwrite("../../warp.png", warpedImg);
-    cv::waitKey(0);
+    // Grading
 
+    int scratch_pixels = scratched.second;
+    double centering = calculateCentering(warpImg, resizedTemplate);
+
+    Card card;
+    card.scratch_pixels = scratch_pixels;
+    card.centering = centering;
+
+    double grade = calculateGrade(card);
+    card.grade = grade;
+    printResults(card);
+
+    cv::imshow("Card Detection", pipeline);
+    cv::imwrite("../../images/warp.png", warpImg);
+    cv::waitKey(0);
     return 0;
 }
