@@ -103,7 +103,7 @@ Very lastly we filter out lines that are of bigger than a certain area size.
 ![Incomlpete Bend Detection](images/README_ASSETS/incomplete.png) 
 
 ## Centering
-The point of centering is to evaluate the alignment of the card and compare it to the template. The final centering score is calculated on a scale of **0.0 (perfect)** to **2.0 (worst)**.
+The point of centering is to evaluate the alignment of the card and compare it to the template.
 
 ## Grading
 The score is a weighted combination of three factors:
@@ -115,12 +115,12 @@ The score is a weighted combination of three factors:
    Compares how well the card's edges match the template.
 
 ## Algorithms
-1. Template Matching
+1. **Template Matching**
 - Convert both input images to grayscale
 - Calculate the normalized cross-correlation between the card image and the template
 - Get the maximum correlation value and convert to a deduction score
 
-2. Centering Offset
+2. **Centering Offset**
 - Apply binary thresholding to the warped image
 - Find all exterior contours
 - Select the contour with the largest area
@@ -129,7 +129,7 @@ The score is a weighted combination of three factors:
 - Calculate normalized offsets in both the x and y directions
 - Compute the Euclidean distance between centers
 
-3. Edge Alignment
+3. **Edge Alignment**
 - Apply Canny edge detection to both grayscale images
 - Compute the absolute difference between the two edge maps
 - Count the number of differing pixels
