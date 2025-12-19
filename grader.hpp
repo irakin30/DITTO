@@ -3,9 +3,9 @@
 struct Card
 {
     double grade;
-    int scratch_pixels;
-    int dent_pixels;
     int fray_pixels;
+    double centering;
+    int scratch_pixels;
 };
 
 double calculateGrade(Card &card);

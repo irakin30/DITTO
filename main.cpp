@@ -5,10 +5,10 @@
 #include <algorithm>
 #include <cmath>
 #include "utils.hpp"
-#include "global_vars.hpp"
 #include "fray.hpp"
 #include "grader.hpp"
 #include "scratch.hpp"
+#include "centering.hpp"
 
 int main(int argc, char **argv)
 {
@@ -22,8 +22,8 @@ int main(int argc, char **argv)
     const std::string template_image_file(argv[2]);
 
     // Read input and template images
-    userImg = cv::imread("../../" + input_image_file);
-    templateImg = cv::imread("../../" + template_image_file);
+    cv::Mat userImg = cv::imread("../../" + input_image_file);
+    cv::Mat templateImg = cv::imread("../../" + template_image_file);
 
     // cv::Mat userImg = cv::imread("../../images/back_rotate.png");
     // cv::Mat templateImg = cv::imread("../../images/back_rotate.png");
@@ -41,7 +41,9 @@ int main(int argc, char **argv)
     cv::Mat originalImg = userImg.clone();
 
     cv::Mat resizedImg;
+    cv::Mat resizedTemplate;
     cv::resize(userImg, resizedImg, cv::Size(WIDTH_CARD, HEIGHT_CARD));
+    cv::resize(templateImg, resizedTemplate, cv::Size(WIDTH_CARD, HEIGHT_CARD));
 
     cv::Mat gray, blurred, bin, edges, morph;
     cv::cvtColor(resizedImg, gray, cv::COLOR_BGR2GRAY);
@@ -100,39 +102,41 @@ int main(int argc, char **argv)
         drawRectangle(cornersImg, corners);
     }
 
-    cv::Mat warpedImg;
+    cv::Mat warpImg;
     if (scaled_corners.size() == 4)
     {
-        warpedImg = warpCard(originalImg, scaled_corners);
+        warpImg = warpCard(originalImg, scaled_corners);
     }
     else
     {
-        warpedImg = cv::Mat::zeros(HEIGHT_CARD, WIDTH_CARD, CV_8UC3);
+        warpImg = cv::Mat::zeros(HEIGHT_CARD, WIDTH_CARD, CV_8UC3);
     }
 
-    warpImg = warpedImg;
-    std::pair<cv::Mat, int> scratched = scratch(warpedImg);
-    std::vector<std::vector<cv::Mat>> imgArr = {{resizedImg, gray, blurred},
-                                                {edges, cornersImg, warpedImg},
-                                                {scratched.first, scratched.first, scratched.first}};
-    std::cout << "There are " << scratched.second << " scratches";
+    std::pair<cv::Mat, int> scratched = scratch(warpImg);
+    std::vector<std::vector<cv::Mat>> imgArr = {
+        {resizedImg, gray, blurred, scratched.first},
+        {edges, cornersImg, warpImg, scratched.first},
+    };
+    std::cout << "There are " << scratched.second << " scratches" << std::endl;
     cv::Mat pipeline = displayImage(imgArr);
 
     // Grading
 
-    int fray_pixels = calculateFrayPixels(warpImg, templateImg);
+    // int fray_pixels = calculateFrayPixels(warpImg, resizedTemplate);
+    int scratch_pixels = scratched.second;
+    double centering = calculateCentering(warpImg, resizedTemplate);
 
     Card card;
-    card.fray_pixels = fray_pixels;
-    card.scratch_pixels = 0;
-    card.dent_pixels = 0;
+    card.fray_pixels = 0;
+    card.scratch_pixels = scratch_pixels;
+    card.centering = centering;
 
     double grade = calculateGrade(card);
     card.grade = grade;
     printResults(card);
 
     cv::imshow("Card Detection", pipeline);
-    cv::imwrite("../../images/warp.png", warpedImg);
+    cv::imwrite("../../images/warp.png", warpImg);
     cv::waitKey(0);
     return 0;
 }

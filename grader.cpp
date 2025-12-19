@@ -7,16 +7,12 @@ double calculateGrade(Card &card)
     double grade = 10.0;
 
     // Maximum pixels for each defects
-    const int MAX_SCRATCH_PIXELS = 500;
-    const int MAX_DENT_PIXELS = 200;
-    const int MAX_FRAY_PIXELS = 300;
+    const int MAX_SCRATCH_PIXELS = 100;
 
     // More defects = lower grade
-    double scratch_deduction = (static_cast<double>(card.scratch_pixels) / MAX_SCRATCH_PIXELS) * 5.0; // Max 5.0 deduction
-    double dent_deduction = (static_cast<double>(card.dent_pixels) / MAX_DENT_PIXELS) * 3.0;          // Max 3.0 deduction
-    double fray_deduction = (static_cast<double>(card.fray_pixels) / MAX_FRAY_PIXELS) * 2.0;          // Max 2.0 deduction
+    double scratch_deduction = (static_cast<double>(card.scratch_pixels) / MAX_SCRATCH_PIXELS) * 8.0; // Max 8.0 deduction
 
-    grade -= (scratch_deduction + dent_deduction + fray_deduction);
+    grade -= (scratch_deduction + card.centering);
 
     grade = std::clamp(grade, 1.0, 10.0);
 
@@ -30,8 +26,7 @@ void printResults(Card &card)
     std::cout << "Card Grading Results:\n";
     std::cout << "=====================\n";
     std::cout << "Scratch Pixels: " << card.scratch_pixels << "\n";
-    std::cout << "Dent Pixels: " << card.dent_pixels << "\n";
-    std::cout << "Fray Pixels: " << card.fray_pixels << "\n";
+    std::cout << "Centering: " << card.centering << "\n";
     std::cout << "=====================\n";
     std::cout << "Final Grade: " << card.grade << "\n";
     std::cout << "=====================\n";
